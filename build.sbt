@@ -47,7 +47,7 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 )
 resolvers += Resolver.sonatypeRepo("snapshots")
-libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT"
+libraryDependencies += "org.platanios" %% "tensorflow" % "0.4.1"
 
 mainClass := Some("com.HsunTzu.exec.execCompress")
 unmanagedResourceDirectories in Compile += baseDirectory.value /"src/main/resources"
