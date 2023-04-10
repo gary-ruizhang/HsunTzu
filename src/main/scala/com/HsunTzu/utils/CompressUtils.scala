@@ -23,6 +23,9 @@ object  CompressUtils{
 
 
   private [this] val logger=Logger(LoggerFactory.getLogger(classOf[CompressUtils]))
+
+  val configPath="./config.properties"
+
   /** *
     * 根据 tar包 后缀 选择解压数据io 流对象
     *
@@ -130,7 +133,7 @@ object  CompressUtils{
     val pro: Properties = new Properties()
     var seqPro: ArrayBuffer[String] = mutable.ArrayBuffer()
     try {
-      val ins: InputStream = new FileInputStream(new File(filePath))
+      val ins: InputStream = this.getClass.getClassLoader.getResourceAsStream(configPath)
       pro.load(ins)
     } catch {
       case e: Exception => throw e

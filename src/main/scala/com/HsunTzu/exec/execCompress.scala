@@ -5,7 +5,7 @@ import com.HsunTzu.hdfs.HdfsCodec
 import com.HsunTzu.utils.PropertiesUtils
 import com.typesafe.scalalogging.Logger
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.compress._
 import org.platanios.tensorflow.api.tf
 import org.platanios.tensorflow.jni.{Graph, Session}
@@ -18,12 +18,13 @@ object  execCompress {
 
   private [this] val logger =Logger(LoggerFactory.getLogger(classOf[execCompress]))
 
-  def  fillHdfsINNConfig():(String,String,String,String)={
+  def  fillHdfsINNConfig():(String,String,String,String,String)={
     val FS =PropertiesUtils.configFileByKeyGetValueFrom("hdfsAddr")
     val FSKey =PropertiesUtils.configFileByKeyGetValueFrom("FsKey")
     val FSUser = PropertiesUtils.configFileByKeyGetValueFrom("FsUserKey")
     val hadoopUser =PropertiesUtils.configFileByKeyGetValueFrom("hadoopUser")
-    return (FSKey,FS,FSUser,hadoopUser)
+    val size =PropertiesUtils.configFileByKeyGetValueFrom("size")
+    return (FSKey,FS,FSUser,hadoopUser,size)
   }
   def  fillHdfsOUTConfig(configPath:String):(String,String,String,String)={
     val FS =PropertiesUtils.outterConfigFileByKey(configPath,"hdfsAddr")
@@ -39,17 +40,16 @@ object  execCompress {
     */
   def main(args: Array[String]): Unit = {
 
-    val inputPath: String = args(0)
-    val outdir: String = args(1)
+    val in: String = args(0)
+    val out: String = args(1)
     val compressType: String = args(2)
-    val propertiesPath:String = args(3)
+    val propertiesPath:String = "./config.properties"
     val inputCodecSignal: String = "2"
     val outputCodecSignal: String = "2"
-    val size: Int = if (args.length > 4) args(4).toInt else 2
-    val outterconfig=fillHdfsOUTConfig(propertiesPath)
-    val HDFSADDR="hdfsAddr"
-    val FS = PropertiesUtils.outterConfigFileByKey(propertiesPath,HDFSADDR)
-    val config = outterconfig
+    val config = fillHdfsINNConfig()
+    val inputPath = config._2 + in
+    val outdir = config._2 + out
+    val size = config._5.toInt
     val conf: Configuration = new Configuration()
     conf.set(config._1,config._2)
     conf.set(config._3,config._4)
@@ -159,7 +159,12 @@ class execCompress {
   }
 
   def originFilesToTarBall(fs: FileSystem, conf: Configuration, inpath: String, outPath: String, codeSignal: String = "0", size: Int)(propertiesPath: String = "/usr/local/info.properties"): Unit = {
-    HdfsTar.makeTarArchiveForDir(fs, conf, inpath, outPath, codeSignal, size)(1)
+    val fileCount = fs.getContentSummary(new Path(inpath)).getFileCount
+    val tarCount = (fileCount / size.toDouble).ceil.toLong
+
+    for (i <- 1L to tarCount) {
+      HdfsTar.makeTarArchiveForDir(fs, conf, inpath, outPath + "." + i, codeSignal, size)(1)
+    }
   }
 
 }
