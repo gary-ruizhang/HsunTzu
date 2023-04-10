@@ -21,8 +21,6 @@ object  HdfsUntar{
 
   private [this] val logger=Logger(LoggerFactory.getLogger(classOf[HdfsUntar]))
 
-  val HDFSPORTDOTSUFFIX=PropertiesUtils.configFileByKeyGetValueFrom("HDFSPORTDOTSUFFIX")
-
   val  targz=".tar.gz"
   val tarbz2 =".tar.bz2"
   val  tgz=".tgz"
@@ -82,23 +80,26 @@ object  HdfsUntar{
   def tarFileUnCompress(srcDir: String, outputDir: String, fs: HDFSFileSystem, propertiesPath: String): Unit = {
     val tarln: TarInputStream =FileUtils.tarfileStreamBySuffix(srcDir,fs)
     logger.info("tarFileUnCompress uncompressing" + fs.getUri + srcDir + "fs" + fs)
+    val fileName: String = new Path(srcDir).getName
+    val billingCycle: String = fileName.substring(0, fileName.indexOf("."))
+    val output: String = outputDir + "/" + billingCycle
     var entry: TarEntry = null
     while ( {
       entry = tarln.getNextEntry; entry != null
     }) {
       try {
         if (entry.isDirectory) {
-          val dirPath=outputDir + "/" + entry.getName
-          logger.info("tar entry.getName  " + entry.getName + "   || outputDir:  " + outputDir+"dirPath"+dirPath)
+          val dirPath=output + "/" + entry.getName
+          logger.info("tar entry.getName  " + entry.getName + "   || output:  " + output+"dirPath"+dirPath)
           val ps: Path = new Path(dirPath)
           val mkflag=fs.mkdirs(ps)
           logger.info("hdfs path name ||"+ps.getName+"hdfs create dir suceess"+mkflag)
         } else {
-          logger.info("tar OutputStream entry.getName  " + entry.getName + "  || outputDir:  " + outputDir)
+          logger.info("tar OutputStream entry.getName  " + entry.getName + "  || output:  " + output)
           val tarEntryName: String = entry.getName
           val flag: Boolean =CommonUtils.boolFilePrefixContains(tarEntryName,propertiesPath)
           if (flag == true) {
-            val pss: Path = new Path(outputDir + "/" + entry.getName)
+            val pss: Path = new Path(output + "/" + entry.getName)
             val out: FSDataOutputStream = fs.create(pss)
             try {
               var length = 0

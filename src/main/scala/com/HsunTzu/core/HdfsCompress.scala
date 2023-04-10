@@ -20,10 +20,6 @@ object HdfsCompress {
 
   private[this] val logger = Logger(LoggerFactory.getLogger(classOf[HdfsCompress]))
 
-
-  val HDFSPORTDOTSUFFIX=PropertiesUtils.configFileByKeyGetValueFrom("HDFSPORTDOTSUFFIX")
-
-
   /**
     * 按目录对文件  进行 snappy  gzip  lzo  压缩
     *

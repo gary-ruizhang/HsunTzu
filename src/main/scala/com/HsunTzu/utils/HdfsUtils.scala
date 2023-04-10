@@ -13,7 +13,8 @@ class HdfsUtils {
 object  HdfsUtils{
 
   private [this] val logger =Logger(LoggerFactory.getLogger(classOf[HdfsUtils]))
-  val HDFSPORTDOTSUFFIX=PropertiesUtils.configFileByKeyGetValueFrom("HDFSPORTDOTSUFFIX")
+  // FIXME 生产修改
+  val HDFSPORTDOTSUFFIX= ":8020/"
 
   /**
     * 解压缩  的输出路径 输入为压缩文件 ，输出为原始文件  没有压缩格式后缀

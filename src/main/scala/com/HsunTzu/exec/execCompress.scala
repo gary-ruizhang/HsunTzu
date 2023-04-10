@@ -1,6 +1,6 @@
 package com.HsunTzu.exec
 
-import com.HsunTzu.core.{HdfsCompress, HdfsConvertCompress, HdfsDeCompress, HdfsUntar}
+import com.HsunTzu.core.{HdfsCompress, HdfsConvertCompress, HdfsDeCompress, HdfsTar, HdfsUntar}
 import com.HsunTzu.hdfs.HdfsCodec
 import com.HsunTzu.utils.PropertiesUtils
 import com.typesafe.scalalogging.Logger
@@ -43,16 +43,17 @@ object  execCompress {
     val outdir: String = args(1)
     val compressType: String = args(2)
     val propertiesPath:String = args(3)
-    val inputCodecSignal: String = args(4)
-    val outputCodecSignal: String = args(5)
-    val innerconfig=fillHdfsINNConfig()
+    val inputCodecSignal: String = "2"
+    val outputCodecSignal: String = "2"
+    val size: Int = if (args.length > 4) args(4).toInt else 2
     val outterconfig=fillHdfsOUTConfig(propertiesPath)
     val HDFSADDR="hdfsAddr"
     val FS = PropertiesUtils.outterConfigFileByKey(propertiesPath,HDFSADDR)
-    val config = if (FS =="null" ) innerconfig else outterconfig
+    val config = outterconfig
     val conf: Configuration = new Configuration()
     conf.set(config._1,config._2)
     conf.set(config._3,config._4)
+    conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
     System.setProperty(config._3,config._4)
     val fs = FileSystem.get(conf)
     val exec = new execCompress
@@ -63,7 +64,7 @@ object  execCompress {
       case "3" => exec.compressFileToOriginFile(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
       case "4" => exec.oneCompressConvertOtherCompress(fs, conf, inputPath, outdir, inputCodecSignal, outputCodecSignal)(propertiesPath)
 
-      case "5" => exec.originFilesToTarBall(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
+      case "5" => exec.originFilesToTarBall(fs, conf, inputPath, outdir, inputCodecSignal, size)(propertiesPath)
       case "6" => exec.compressFilesToTarball(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
       case "7" => exec.tarFileToSingleCompressFiles(fs, inputPath, outdir, inputCodecSignal, outputCodecSignal)(propertiesPath)
       case _ => exec.originFileToCompressFile(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
@@ -157,8 +158,8 @@ class execCompress {
     HdfsDeCompress.dirCompressFilesToTarball(fs, conf, inpath, outPath, codeSignal)(propertiesPath)
   }
 
-  def originFilesToTarBall(fs: FileSystem, conf: Configuration, inpath: String, outPath: String, codeSignal: String = "0")(propertiesPath: String = "/usr/local/info.properties"): Unit = {
-
+  def originFilesToTarBall(fs: FileSystem, conf: Configuration, inpath: String, outPath: String, codeSignal: String = "0", size: Int)(propertiesPath: String = "/usr/local/info.properties"): Unit = {
+    HdfsTar.makeTarArchiveForDir(fs, conf, inpath, outPath, codeSignal, size)(1)
   }
 
 }

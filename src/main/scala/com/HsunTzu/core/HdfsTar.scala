@@ -1,12 +1,11 @@
 package com.HsunTzu.core
 
 import java.io.BufferedInputStream
-
 import com.HsunTzu.utils.CommonUtils
 import com.typesafe.scalalogging.Logger
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveOutputStream}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, FileSystem, Path}
+import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, FileStatus, FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
 import org.apache.hadoop.io.compress._
 import org.slf4j.LoggerFactory
@@ -27,9 +26,8 @@ object  HdfsTar{
     * @param codec    hdfs tar 压缩格式 方法
     * @param depth   压缩目录的深度 默认为1 层 目录
     */
-  def makeTarArchiveForDir(fs: FileSystem, conf: Configuration, inpath: String, outPath: String,codec:String)(depth:Int=1):Unit={
+  def makeTarArchiveForDir(fs: FileSystem, conf: Configuration, inpath: String, outPath: String,codec:String, size: Int)(depth:Int=1):Unit={
     val inputPath:Path=new Path(inpath)
-    val  inFsData:FSDataInputStream=fs.open(inputPath)
 
     val inSubPath: String =CommonUtils.getOutFileSubPath(inpath)
     var nOutPath = ""
@@ -40,8 +38,7 @@ object  HdfsTar{
     }
     val gzipCodec:GzipCodec=new GzipCodec()
     gzipCodec.setConf(conf)
-    val tarFile=nOutPath+inSubPath+gzipCodec.getDefaultExtension
-    val buffInStream :BufferedInputStream=new BufferedInputStream(inFsData)
+    val tarFile=outPath + ".tar" + gzipCodec.getDefaultExtension
     //val bos:ByteArrayInputStream=new ByteArrayInputStream()
     val outputPath:Path=new Path(tarFile)
     val  outFsData:FSDataOutputStream=fs.create(outputPath)
@@ -51,23 +48,43 @@ object  HdfsTar{
     var readlen=0
     val bufferIO:Array[Byte]=new Array[Byte](64*1024)
     val startTime=System.currentTimeMillis()
-    try{
-      while ({
-        readlen= buffInStream.read(bufferIO)
-        readlen != -1
-      }){
-        tarOutStream.write(bufferIO,0,readlen)
+
+    val listFs: Array[FileStatus] = fs.listStatus(inputPath)
+    var i = 0;
+    var j = 0;
+    while (i < listFs.length && j < size) {
+      val file = listFs(i)
+      val inFsData: FSDataInputStream = fs.open(file.getPath)
+      val buffInStream: BufferedInputStream = new BufferedInputStream(inFsData)
+
+      val entry = new TarArchiveEntry(file.getPath.getName)
+      entry.setSize(file.getLen)
+      tarOutStream.putArchiveEntry(entry)
+
+      try {
+        while ( {
+          readlen = buffInStream.read(bufferIO)
+          readlen != -1
+        }) {
+          tarOutStream.write(bufferIO, 0, readlen)
+        }
+        tarOutStream.flush()
+        tarOutStream.closeArchiveEntry()
+      } catch {
+        case e: Exception => e.printStackTrace()
+      } finally {
+        IOUtils.closeStream(inFsData)
+        fs.delete(file.getPath, true)
+        // fs.close()
       }
-    }catch{
-      case e:Exception => e.printStackTrace()
-    }finally {
-      tarOutStream.flush()
-      tarOutStream.finish()
-      tarOutStream.close()
-      IOUtils.closeStream(outFsData)
-      IOUtils.closeStream(inFsData)
-      // fs.close()
+      i = i + 1
+      j = j + 1
     }
+
+    tarOutStream.finish()
+    tarOutStream.close()
+    IOUtils.closeStream(outFsData)
+
     val endTime=System.currentTimeMillis()
     val tmCause=endTime-startTime
     logger.info(" 时间消耗 ： "+tmCause +" ms")
