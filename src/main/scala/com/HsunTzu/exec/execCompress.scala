@@ -2,7 +2,7 @@ package com.HsunTzu.exec
 
 import com.HsunTzu.core.{HdfsCompress, HdfsConvertCompress, HdfsDeCompress, HdfsTar, HdfsUntar}
 import com.HsunTzu.hdfs.HdfsCodec
-import com.HsunTzu.utils.PropertiesUtils
+import com.HsunTzu.utils.{HdfsUtils, PropertiesUtils}
 import com.typesafe.scalalogging.Logger
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -67,6 +67,7 @@ object  execCompress {
       case "5" => exec.originFilesToTarBall(fs, conf, inputPath, outdir, inputCodecSignal, size)(propertiesPath)
       case "6" => exec.compressFilesToTarball(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
       case "7" => exec.tarFileToSingleCompressFiles(fs, inputPath, outdir, inputCodecSignal, outputCodecSignal)(propertiesPath)
+      case "8" => exec.renameFiles(fs, inputPath, outdir)
       case _ => exec.originFileToCompressFile(fs, conf, inputPath, outdir, inputCodecSignal)(propertiesPath)
     }
     val  programEnd =System.currentTimeMillis()
@@ -167,6 +168,9 @@ class execCompress {
     }
   }
 
+  def renameFiles(fs: FileSystem, inPath: String, outPath: String): Unit = {
+    HdfsUtils.renameFiles(fs, inPath, outPath)
+  }
 }
 
 

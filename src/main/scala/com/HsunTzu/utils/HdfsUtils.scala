@@ -7,6 +7,8 @@ import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.hadoop.mapreduce.Job
 import org.slf4j.LoggerFactory
 
+import java.io.{BufferedReader, InputStreamReader}
+
 class HdfsUtils {
 
 }
@@ -141,4 +143,16 @@ object  HdfsUtils{
     }
   }
 
+  def renameFiles(fs: FileSystem, inPath: String, outPath: String): Unit = {
+    val fileList = new Path("/rename_filelist/FILE_LIST")
+    val br = new BufferedReader(new InputStreamReader(fs.open(fileList)))
+
+    var line = br.readLine()
+    while (line != null) {
+      fs.rename(new Path(inPath + line), new Path(outPath + line))
+      line = br.readLine()
+    }
+
+    br.close()
+  }
 }
